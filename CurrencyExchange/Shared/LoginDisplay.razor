@@ -1,0 +1,15 @@
+﻿<AuthorizeView>
+    <Authorized>
+        <div style="display:block">
+        Logged in as @context.User.Identity.Name
+        <a href="Identity/Account/Manage"><span class="oi oi-cog"></span></a>
+        <form method="post" action="Identity/Account/LogOut" style="display:inline-flex">
+            <button type="submit" class="nav-link btn btn-link"><span class="oi oi-power-standby"></span></button>
+        </form>
+        </div>
+    </Authorized>
+    <NotAuthorized>
+        <a href="Identity/Account/Register">Register</a>
+        <a href="Identity/Account/Login">Log in</a>
+    </NotAuthorized>
+</AuthorizeView>

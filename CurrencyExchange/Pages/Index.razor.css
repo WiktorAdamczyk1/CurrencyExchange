@@ -1,0 +1,28 @@
+﻿body {
+}
+
+.display-block{
+    display:block;
+}
+
+.inline-table {
+    display: inline-block;
+    max-width:47%;
+    width:100%;
+    border:solid;
+    border-width:2px;
+    vertical-align:top;
+
+}
+
+.table, .table td, .table th {
+    border-color: black;
+    border-width: 2px;
+    overflow-wrap: anywhere;
+}
+
+.table-header{
+    border-top: 0px;
+    max-width:100%
+
+}
