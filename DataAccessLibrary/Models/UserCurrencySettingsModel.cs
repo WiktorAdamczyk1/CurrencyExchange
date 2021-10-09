@@ -9,11 +9,11 @@ namespace DataAccessLibrary.Models
     public class UserCurrencySettingsModel
     {
         public string UserId { get; set; }
-        public int USD { get; set; }
-        public int EUR { get; set; }
-        public int CHF { get; set; }
-        public int RUB { get; set; }
-        public int CZK { get; set; }
-        public int GBP { get; set; }
+        public bool USD { get; set; }
+        public bool EUR { get; set; }
+        public bool CHF { get; set; }
+        public bool RUB { get; set; }
+        public bool CZK { get; set; }
+        public bool GBP { get; set; }
     }
 }

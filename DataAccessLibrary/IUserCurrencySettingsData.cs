@@ -5,7 +5,7 @@ namespace DataAccessLibrary
 {
     public interface IUserCurrencySettingsData
     {
-        Task<UserCurrencySettingsModel> GetUserWallet(string currentUserId);
+        Task<UserCurrencySettingsModel> GetUserCurrencySettings(string currentUserId);
         Task InsertUserCurrencySettings(UserCurrencySettingsModel userCurrencySettings);
         Task UpdateUserCurrencySettings(UserCurrencySettingsModel userCurrencySettings);
     }

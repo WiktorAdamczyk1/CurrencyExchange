@@ -17,7 +17,7 @@ namespace DataAccessLibrary
             _db = db;
         }
 
-        public async Task<UserCurrencySettingsModel> GetUserWallet(string currentUserId)
+        public async Task<UserCurrencySettingsModel> GetUserCurrencySettings(string currentUserId)
         {
             if (string.IsNullOrEmpty(currentUserId))
             {
@@ -25,7 +25,7 @@ namespace DataAccessLibrary
             }
 
             string sql = "select * from dbo.UserCurrencySettings where UserId = @UserId";
-            var data = await _db.LoadData<UserCurrencySettingsModel, dynamic>(sql, new { userId = currentUserId });
+            var data = await _db.LoadData<UserCurrencySettingsModel, dynamic>(sql, new { UserId = currentUserId });
             return data[0];
         }
 

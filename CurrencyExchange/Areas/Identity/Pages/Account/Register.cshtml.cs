@@ -136,12 +136,12 @@ namespace CurrencyExchange.Areas.Identity.Pages.Account
                     var userCurrencySettings = new UserCurrencySettingsModel
                     {
                         UserId = userWallet.UserId,
-                        USD = userWallet.USD > 0 ? 1 : 0,
-                        EUR = userWallet.EUR > 0 ? 1 : 0,
-                        CHF = userWallet.CHF > 0 ? 1 : 0,
-                        RUB = userWallet.RUB > 0 ? 1 : 0,
-                        CZK = userWallet.CZK > 0 ? 1 : 0,
-                        GBP = userWallet.GBP > 0 ? 1 : 0
+                        USD = userWallet.USD > 0 ? true : false,
+                        EUR = userWallet.EUR > 0 ? true : false,
+                        CHF = userWallet.CHF > 0 ? true : false,
+                        RUB = userWallet.RUB > 0 ? true : false,
+                        CZK = userWallet.CZK > 0 ? true : false,
+                        GBP = userWallet.GBP > 0 ? true : false
                     };
                     await _userCurrencySettingsData.InsertUserCurrencySettings(userCurrencySettings);
 

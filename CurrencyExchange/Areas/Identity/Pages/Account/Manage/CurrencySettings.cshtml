@@ -1,0 +1,50 @@
+﻿@page
+@model CurrencySettings
+@{
+    ViewData["Title"] = "Currencies displayed";
+    ViewData["ActivePage"] = ManageNavPages.CurrencySettings;
+}
+<h4>@ViewData["Title"]</h4>
+<partial name="_StatusMessage" model="Model.StatusMessage" />
+<div class="row">
+    <div class="col-md-6">
+        <form id="profile-form" method="post">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <div class="form-group">
+                <label style="display:inline;" asp-for="Input.USD"></label>
+                <input style="display:inline;" type="checkbox" asp-for="Input.USD" class="form-check" />
+                <span asp-validation-for="Input.USD" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label style="display:inline;" asp-for="Input.EUR"></label>
+                <input style="display:inline;" type="checkbox" asp-for="Input.EUR" class="form-check" />
+                <span asp-validation-for="Input.EUR" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label style="display:inline;" asp-for="Input.CHF"></label>
+                <input style="display:inline;" type="checkbox" asp-for="Input.CHF" class="form-check" />
+                <span asp-validation-for="Input.CHF" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label style="display:inline;" asp-for="Input.RUB"></label>
+                <input style="display:inline;" type="checkbox" asp-for="Input.RUB" class="form-check" />
+                <span asp-validation-for="Input.RUB" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label style="display:inline;" asp-for="Input.CZK"></label>
+                <input style="display:inline;" type="checkbox" asp-for="Input.CZK" class="form-check" />
+                <span asp-validation-for="Input.CZK" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label style="display:inline;" asp-for="Input.GBP"></label>
+                <input style="display:inline;" type="checkbox" asp-for="Input.GBP" class="form-check" />
+                <span asp-validation-for="Input.GBP" class="text-danger"></span>
+            </div>
+            <button id="update-profile-button" type="submit" class="btn btn-primary">Save</button>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
