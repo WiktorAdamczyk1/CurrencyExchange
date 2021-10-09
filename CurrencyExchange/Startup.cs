@@ -1,5 +1,6 @@
 using CurrencyExchange.Areas.Identity;
 using CurrencyExchange.Data;
+using DataAccessLibrary;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
@@ -40,6 +41,12 @@ namespace CurrencyExchange
             services.AddServerSideBlazor();
             services.AddScoped<AuthenticationStateProvider, RevalidatingIdentityAuthenticationStateProvider<IdentityUser>>();
             services.AddDatabaseDeveloperPageExceptionFilter();
+            services.AddHttpContextAccessor();
+            services.AddTransient<ISqlDataAccess, SqlDataAccess>();
+            services.AddTransient<IExchangeRatesData, ExchangeRatesData>();
+            services.AddTransient<IExchangeUnitsData, ExchangeUnitsData>();
+            services.AddTransient<IExchangeWalletData, ExchangeWalletData>();
+            services.AddTransient<IUserWalletsData, UserWalletsData>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
