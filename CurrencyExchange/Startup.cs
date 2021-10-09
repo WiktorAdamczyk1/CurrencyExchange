@@ -47,6 +47,7 @@ namespace CurrencyExchange
             services.AddTransient<IExchangeUnitsData, ExchangeUnitsData>();
             services.AddTransient<IExchangeWalletData, ExchangeWalletData>();
             services.AddTransient<IUserWalletsData, UserWalletsData>();
+            services.AddTransient<IAspNetUsersData, AspNetUsersData>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

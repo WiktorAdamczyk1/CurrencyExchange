@@ -34,5 +34,13 @@ namespace DataAccessLibrary
 
             return _db.SaveData(sql, userWallet);
         }
+
+        public Task InsertUserWallet(UserWalletsModel userWallet)
+        {
+            string sql = @"insert into dbo.UserWallets (UserId, PLN, USD, EUR, CHF, RUB, CZK, GBP)
+                            values (@UserId, @PLN, @USD, @EUR, @CHF, @RUB, @CZK, @GBP);";
+
+            return _db.SaveData(sql, userWallet);
+        }
     }
 }

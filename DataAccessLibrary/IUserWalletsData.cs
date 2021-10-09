@@ -7,5 +7,6 @@ namespace DataAccessLibrary
     {
         Task<UserWalletsModel> GetUserWallet(string currentUserId);
         Task UpdateUserWalletBalance(UserWalletsModel userWallet);
+        Task InsertUserWallet(UserWalletsModel userWallet);
     }
 }
