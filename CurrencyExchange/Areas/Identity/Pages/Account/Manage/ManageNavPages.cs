@@ -26,6 +26,8 @@ namespace CurrencyExchange.Areas.Identity.Pages.Account.Manage
 
         public static string CurrencySettings => "CurrencySettings";
 
+        public static string WalletSettings => "WalletSettings";
+
         public static string IndexNavClass(ViewContext viewContext) => PageNavClass(viewContext, Index);
 
         public static string EmailNavClass(ViewContext viewContext) => PageNavClass(viewContext, Email);
@@ -43,6 +45,8 @@ namespace CurrencyExchange.Areas.Identity.Pages.Account.Manage
         public static string TwoFactorAuthenticationNavClass(ViewContext viewContext) => PageNavClass(viewContext, TwoFactorAuthentication);
 
         public static string CurrencySettingsNavClass(ViewContext viewContext) => PageNavClass(viewContext, CurrencySettings);
+
+        public static string WalletSettingsNavClass(ViewContext viewContext) => PageNavClass(viewContext, WalletSettings);
 
         private static string PageNavClass(ViewContext viewContext, string page)
         {

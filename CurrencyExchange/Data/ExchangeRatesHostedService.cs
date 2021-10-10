@@ -15,10 +15,10 @@ namespace CurrencyExchange.Data
     public class ExchangeRatesHostedService : BackgroundService, IHostedService
     {
         private int executionCount = 0;
-        private int delayAfterExecute = 2000;
+        private int delayAfterExecute = 20000;
         private bool connectionSuccessful = false;
         private bool receivedOldDetails = false;
-        private int receivedOldDetailsTryCount = 2;
+        private int receivedOldDetailsTryCount = 20;
 
         private readonly ExchangeRatesHttp _exchangeRatesHttp;
         private readonly ICurrencyDetailsData _currencyDetailsData;

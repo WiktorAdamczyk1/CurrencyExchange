@@ -5,6 +5,8 @@
 @using System.Security.Claims
 @using Microsoft.AspNetCore.Http
 @using Microsoft.AspNetCore.SignalR.Client
+@using Microsoft.AspNetCore.SignalR
+@using CurrencyExchange.Hubs
 @inject IHttpContextAccessor _httpContextAccessor
 @inject ICurrencyDetailsData _currencyDetailsData
 @inject IExchangeWalletData _exchangeWallet
@@ -12,6 +14,7 @@
 @inject IUserCurrencySettingsData _userCurrencySettings
 @inject IJSRuntime JS
 @inject NavigationManager NavigationManager
+@inject IHubContext<NotificationHub, INotificationHub> _notificationHub
 @implements IAsyncDisposable
 @if (isLoading)
 {
@@ -203,6 +206,9 @@ else
     //check this value on initialised
     bool tradingDisabled = false;
 
+    private HubConnection hubConnection;
+    private string input;
+
     protected override async Task OnInitializedAsync()
     {
         hubConnection = new HubConnectionBuilder()
@@ -222,23 +228,17 @@ else
                 tradingDisabled = true;
                 StateHasChanged();
             }
-            else if(alert == "connectionResumed") // resume trading
+            else if (alert == "connectionResumed") // resume trading
             {
                 currenciesDetails = await _currencyDetailsData.GetNewestCurrencyDetails();
                 tradingDisabled = false;
                 StateHasChanged();
             }
-            else if(alert == "updateWallet")
+            else if (alert == "updateWallet")
             {
                 exchangeWallet = await _exchangeWallet.GetExchangeWallet();
-            }
-            else if(alert == "transactionSuccessful") // TODO after client to server requests
-            {
-
-            }
-            else if (alert == "transactionFailed") //TODO
-            {
-
+                if(authenticated) userWallet = await _userWallet.GetUserWallet(loggedInUserId);
+                StateHasChanged();
             }
 
         });
@@ -261,71 +261,81 @@ else
 
     private async void Buy(CurrencyDetailsModel currency)
     {
-        exchangeWallet = await _exchangeWallet.GetExchangeWallet();
-        userWallet = await _userWallet.GetUserWallet(loggedInUserId);
-        var exchangeCurrBalance = Convert.ToInt32(exchangeWallet.GetType().GetProperty(currency.Code).GetValue(exchangeWallet, null));
-        var userCurrBalance = Convert.ToInt32(userWallet.GetType().GetProperty(currency.Code).GetValue(userWallet, null));
-        bool enoughInExchangeWallet = exchangeCurrBalance >= currency.Unit;
-        bool enoughInUserWallet = userWallet.PLN >= currency.PurchasePrice;
-
-        // Check if user and exchange have the required balance
-        if (enoughInUserWallet && enoughInExchangeWallet)
+        var confirmed = await JS.InvokeAsync<bool>("confirm", $"Are you sure you want to buy {currency.Unit} {currency.Code}?");
+        if (confirmed)
         {
-            //buy
-            userWallet.PLN -= currency.PurchasePrice;
-            userWallet.GetType().GetProperty(currency.Code).SetValue(userWallet, userCurrBalance + currency.Unit);
+            exchangeWallet = await _exchangeWallet.GetExchangeWallet();
+            userWallet = await _userWallet.GetUserWallet(loggedInUserId);
+            var exchangeCurrBalance = Convert.ToInt32(exchangeWallet.GetType().GetProperty(currency.Code).GetValue(exchangeWallet, null));
+            var userCurrBalance = Convert.ToInt32(userWallet.GetType().GetProperty(currency.Code).GetValue(userWallet, null));
+            bool enoughInExchangeWallet = exchangeCurrBalance >= currency.Unit;
+            bool enoughInUserWallet = userWallet.PLN >= currency.PurchasePrice;
 
-            exchangeWallet.PLN += currency.PurchasePrice;
-            exchangeWallet.GetType().GetProperty(currency.Code).SetValue(exchangeWallet, exchangeCurrBalance - currency.Unit);
+            // Check if user and exchange have the required balance
+            if (enoughInUserWallet && enoughInExchangeWallet)
+            {
+                //buy
+                userWallet.PLN -= currency.PurchasePrice;
+                userWallet.GetType().GetProperty(currency.Code).SetValue(userWallet, userCurrBalance + currency.Unit);
 
-            await _userWallet.UpdateUserWalletBalance(userWallet);
-            await _exchangeWallet.UpdateExchangeWalletBalance(exchangeWallet);
+                exchangeWallet.PLN += currency.PurchasePrice;
+                exchangeWallet.GetType().GetProperty(currency.Code).SetValue(exchangeWallet, exchangeCurrBalance - currency.Unit);
+
+                await _userWallet.UpdateUserWalletBalance(userWallet);
+                await _exchangeWallet.UpdateExchangeWalletBalance(exchangeWallet);
+
+                await _notificationHub.Clients.All.SendMessage("updateWallet");
+                await JS.InvokeVoidAsync("alert", $"You have bought {currency.Unit} {currency.Code}!");
+            }
+            else
+            {
+                await JS.InvokeVoidAsync("alert", "You or the exchange do not have the required funds to make this transaction!");
+            }
         }
-        else
-        {
-            // No funds
-            await JS.InvokeVoidAsync("alert", "You or the exchange do not have the funds to make this transaction!");
-        }
-        StateHasChanged();
     }
 
     private async void Sell(CurrencyDetailsModel currency)
     {
-        exchangeWallet = await _exchangeWallet.GetExchangeWallet();
-        userWallet = await _userWallet.GetUserWallet(loggedInUserId);
-        var exchangeCurrBalance = Convert.ToInt32(exchangeWallet.GetType().GetProperty(currency.Code).GetValue(exchangeWallet, null));
-        var userCurrBalance = Convert.ToInt32(userWallet.GetType().GetProperty(currency.Code).GetValue(userWallet, null));
-        bool enoughInUserWallet = userCurrBalance >= currency.Unit;
-        bool enoughInExchangeWallet = exchangeWallet.PLN >= currency.SellPrice;
+        var confirmed = await JS.InvokeAsync<bool>("confirm", $"Are you sure you want to sell {currency.Unit} {currency.Code}?");
 
-        // Check if user and exchange have the required balance
-        if (enoughInUserWallet && enoughInExchangeWallet)
+        if (confirmed)
         {
-            //buy
-            userWallet.PLN += currency.SellPrice;
-            userWallet.GetType().GetProperty(currency.Code).SetValue(userWallet, userCurrBalance - currency.Unit);
+            var exchangeWallet = await _exchangeWallet.GetExchangeWallet();
+            var userWallet = await _userWallet.GetUserWallet(loggedInUserId);
+            var exchangeCurrBalance = Convert.ToInt32(exchangeWallet.GetType().GetProperty(currency.Code).GetValue(exchangeWallet, null));
+            var userCurrBalance = Convert.ToInt32(userWallet.GetType().GetProperty(currency.Code).GetValue(userWallet, null));
+            bool enoughInUserWallet = userCurrBalance >= currency.Unit;
+            bool enoughInExchangeWallet = exchangeWallet.PLN >= currency.SellPrice;
 
-            exchangeWallet.PLN -= currency.SellPrice;
-            exchangeWallet.GetType().GetProperty(currency.Code).SetValue(exchangeWallet, exchangeCurrBalance + currency.Unit);
+            // Check if user and exchange have the required balance
+            if (enoughInUserWallet && enoughInExchangeWallet)
+            {
+                //buy
+                userWallet.PLN += currency.SellPrice;
+                userWallet.GetType().GetProperty(currency.Code).SetValue(userWallet, userCurrBalance - currency.Unit);
 
-            await _userWallet.UpdateUserWalletBalance(userWallet);
-            await _exchangeWallet.UpdateExchangeWalletBalance(exchangeWallet);
+                exchangeWallet.PLN -= currency.SellPrice;
+                exchangeWallet.GetType().GetProperty(currency.Code).SetValue(exchangeWallet, exchangeCurrBalance + currency.Unit);
+
+                await _userWallet.UpdateUserWalletBalance(userWallet);
+                await _exchangeWallet.UpdateExchangeWalletBalance(exchangeWallet);
+
+                await _notificationHub.Clients.All.SendMessage("updateWallet");
+                await JS.InvokeVoidAsync("alert", $"You have sold {currency.Unit} {currency.Code}!");
+
+            }
+            else
+            {
+                await JS.InvokeVoidAsync("alert", "You or the exchange do not have the required funds to make this transaction!");
+            }
+
         }
-        else
-        {
-            // No funds
-            await JS.InvokeVoidAsync("alert", "You or the exchange do not have the funds to make this transaction!");
-        }
-        StateHasChanged();
     }
 
     private async void LogInPrompt()
     {
         await JS.InvokeVoidAsync("alert", "You are not logged in!");
     }
-
-    private HubConnection hubConnection;
-    private string input;
 
     public async Task Send() =>
         await hubConnection.SendAsync("SendMessage", input);
