@@ -4,13 +4,15 @@
 @using DataAccessLibrary.Models
 @using System.Security.Claims
 @using Microsoft.AspNetCore.Http
+@using Microsoft.AspNetCore.SignalR.Client
 @inject IHttpContextAccessor _httpContextAccessor
-@inject IExchangeRatesData _exchangeRatesData
-@inject IExchangeUnitsData _exchangeUnitsData
+@inject ICurrencyDetailsData _currencyDetailsData
 @inject IExchangeWalletData _exchangeWallet
 @inject IUserWalletsData _userWallet
 @inject IUserCurrencySettingsData _userCurrencySettings
 @inject IJSRuntime JS
+@inject NavigationManager NavigationManager
+@implements IAsyncDisposable
 @if (isLoading)
 {
     <p><em>Loading...</em></p>
@@ -45,23 +47,23 @@ else
                 <tbody>
                     @if (authenticated)
                     {
-                        foreach (var prop in userCurrencySettings.GetType().GetProperties())
+                        foreach (var currency in currenciesDetails)
                         {
-                            if (prop.PropertyType != typeof(string) && Convert.ToBoolean(prop.GetValue(userCurrencySettings)))
+                            if (currency.Code != "PLN" && Convert.ToBoolean(userCurrencySettings.GetType().GetProperty(currency.Code).GetValue(userCurrencySettings, null)))
                             {
-                                var name = prop.Name;
+                                var curr = currency;
                                 <tr>
                                     <td>
-                                        @prop.Name
+                                        @currency.Code
                                     </td>
                                     <td>
-                                        @exchangeUnits.GetType().GetProperty(prop.Name).GetValue(exchangeUnits, null)
+                                        @currency.Unit
                                     </td>
                                     <td>
-                                        @String.Format("{0:0.00}", exchangeRates.Last().GetType().GetProperty(prop.Name).GetValue(exchangeRates.Last(), null))
+                                        @currency.PurchasePrice.ToString("F")
                                     </td>
                                     <td>
-                                        <button class="btn btn-primary" @onclick="()=>Buy(name)">Buy</button>
+                                        <button class="btn btn-primary" @onclick="()=>Buy(curr)" disabled="@tradingDisabled">Buy</button>
                                     </td>
                                 </tr>
                             }
@@ -70,22 +72,23 @@ else
                     }
                     else
                     {
-                        foreach (var prop in exchangeWallet.GetType().GetProperties())
+                        foreach (var currency in currenciesDetails)
                         {
-                            if (prop.PropertyType != typeof(string) && prop.Name != "PLN")
+                            if (currency.Code != "PLN")
                             {
+                                var curr = currency;
                                 <tr>
                                     <td>
-                                        @prop.Name
+                                        @currency.Code
                                     </td>
                                     <td>
-                                        @exchangeUnits.GetType().GetProperty(prop.Name).GetValue(exchangeUnits, null)
+                                        @currency.Unit
                                     </td>
                                     <td>
-                                        @String.Format("{0:0.00}", exchangeRates.Last().GetType().GetProperty(prop.Name).GetValue(exchangeRates.Last(), null))
+                                        @currency.PurchasePrice.ToString("F")
                                     </td>
                                     <td>
-                                        <button class="btn btn-primary" @onclick="LogInPrompt">Buy</button>
+                                        <button class="btn btn-primary" @onclick="LogInPrompt" disabled="@tradingDisabled">Buy</button>
                                     </td>
                                 </tr>
                             }
@@ -96,8 +99,8 @@ else
                     </tr>
                     <tr>
                         <td colspan="5">
-                            Last Value Update: @exchangeRates.Last().GetType().GetProperty("Timestamp").GetValue(exchangeRates.Last(), null)<br>
-                            Available PLN: @exchangeWallet.PLN
+                            Last Value Update: @currenciesDetails.FirstOrDefault().Timestamp@*.AddHours(2)*@<br>
+                            Available PLN: @exchangeWallet.PLN.ToString("F")
                         </td>
                     </tr>
                 </tbody>
@@ -142,26 +145,26 @@ else
                 <tbody>
                     @if (authenticated)
                     {
-                        foreach (var prop in userCurrencySettings.GetType().GetProperties())
+                        foreach (var currency in currenciesDetails)
                         {
-                            if (prop.PropertyType != typeof(string) && Convert.ToBoolean(prop.GetValue(userCurrencySettings)))
+                            if (currency.Code != "PLN" && Convert.ToBoolean(userCurrencySettings.GetType().GetProperty(currency.Code).GetValue(userCurrencySettings, null)))
                             {
-                                var name = prop.Name;
+                                var curr = currency;
                                 <tr>
                                     <td>
-                                        @prop.Name
+                                        @currency.Code
                                     </td>
                                     <td>
-                                        @String.Format("{0:0.00}", (Convert.ToDecimal(exchangeUnits.GetType().GetProperty(prop.Name).GetValue(exchangeUnits, null)) * Convert.ToDecimal(exchangeRates.Last().GetType().GetProperty(prop.Name).GetValue(exchangeRates.Last(), null))))
+                                        @currency.SellPrice.ToString("F")
                                     </td>
                                     <td>
-                                        @userWallet.GetType().GetProperty(prop.Name).GetValue(userWallet, null)
+                                        @userWallet.GetType().GetProperty(currency.Code).GetValue(userWallet, null)
                                     </td>
                                     <td>
-                                        @String.Format("{0:0.00}", exchangeRates.Last().GetType().GetProperty(prop.Name).GetValue(exchangeRates.Last(), null))
+                                        @((Convert.ToDecimal(userWallet.GetType().GetProperty(currency.Code).GetValue(userWallet, null))/currency.Unit*currency.SellPrice).ToString("F"))
                                     </td>
                                     <td>
-                                        <button class="btn btn-primary" @onclick="()=>Buy(name)">Sell</button>
+                                        <button class="btn btn-primary" @onclick="()=>Sell(curr)" disabled="@tradingDisabled">Sell</button>
                                     </td>
                                 </tr>
                             }
@@ -174,7 +177,7 @@ else
                     @if (authenticated)
                     {
                         <tr>
-                            <td colspan="5">Available PLN: @userWallet.PLN</td>
+                            <td colspan="5">Available PLN: @userWallet.PLN.ToString("F")</td>
                         </tr>
 
                     }
@@ -188,8 +191,7 @@ else
 
 
 @code {
-    private List<ExchangeRatesModel> exchangeRates;
-    private ExchangeUnitsModel exchangeUnits = new ExchangeUnitsModel();
+    private List<CurrencyDetailsModel> currenciesDetails;
     private ExchangeWalletModel exchangeWallet;
     private UserWalletsModel userWallet;
     private UserCurrencySettingsModel userCurrencySettings = new UserCurrencySettingsModel();
@@ -198,11 +200,53 @@ else
     string loggedInUserId = null;
     private bool isLoading = true;
 
+    //check this value on initialised
+    bool tradingDisabled = false;
+
     protected override async Task OnInitializedAsync()
     {
+        hubConnection = new HubConnectionBuilder()
+            .WithUrl(NavigationManager.ToAbsoluteUri("/notification"))
+            .Build();
+
+        hubConnection.On<string>("SendMessage", async alert =>
+        {
+            // Check alert type
+            if (alert == "updateDetails")
+            {
+                currenciesDetails = await _currencyDetailsData.GetNewestCurrencyDetails();
+                StateHasChanged();
+            }
+            else if (alert == "connectionError") // halt trading
+            {
+                tradingDisabled = true;
+                StateHasChanged();
+            }
+            else if(alert == "connectionResumed") // resume trading
+            {
+                currenciesDetails = await _currencyDetailsData.GetNewestCurrencyDetails();
+                tradingDisabled = false;
+                StateHasChanged();
+            }
+            else if(alert == "updateWallet")
+            {
+                exchangeWallet = await _exchangeWallet.GetExchangeWallet();
+            }
+            else if(alert == "transactionSuccessful") // TODO after client to server requests
+            {
+
+            }
+            else if (alert == "transactionFailed") //TODO
+            {
+
+            }
+
+        });
+
+        await hubConnection.StartAsync();
+
         authenticated = _httpContextAccessor.HttpContext.User.Identity.IsAuthenticated;
-        exchangeRates = await _exchangeRatesData.GetExchangeRates();
-        exchangeUnits = await _exchangeUnitsData.GetExchangeUnits();
+        currenciesDetails = await _currencyDetailsData.GetNewestCurrencyDetails();
         exchangeWallet = await _exchangeWallet.GetExchangeWallet();
         if (authenticated)
         {
@@ -215,26 +259,24 @@ else
         isLoading = false;
     }
 
-    private async void Buy(string currencyName)
+    private async void Buy(CurrencyDetailsModel currency)
     {
         exchangeWallet = await _exchangeWallet.GetExchangeWallet();
         userWallet = await _userWallet.GetUserWallet(loggedInUserId);
-        var unitSize = Convert.ToInt32(exchangeUnits.GetType().GetProperty(currencyName).GetValue(exchangeUnits, null));
-        var unitPrice = unitSize*Convert.ToDecimal(exchangeRates.Last().GetType().GetProperty(currencyName).GetValue(exchangeRates.Last(), null));
-        var exchangeCurrBalance = Convert.ToInt32(exchangeWallet.GetType().GetProperty(currencyName).GetValue(exchangeWallet, null));
-        var userCurrBalance = Convert.ToInt32(userWallet.GetType().GetProperty(currencyName).GetValue(userWallet, null));
-        bool enoughInExchangeWallet = exchangeCurrBalance >= unitSize;
-        bool enoughInUserWallet = userWallet.PLN >= unitPrice;
+        var exchangeCurrBalance = Convert.ToInt32(exchangeWallet.GetType().GetProperty(currency.Code).GetValue(exchangeWallet, null));
+        var userCurrBalance = Convert.ToInt32(userWallet.GetType().GetProperty(currency.Code).GetValue(userWallet, null));
+        bool enoughInExchangeWallet = exchangeCurrBalance >= currency.Unit;
+        bool enoughInUserWallet = userWallet.PLN >= currency.PurchasePrice;
 
         // Check if user and exchange have the required balance
         if (enoughInUserWallet && enoughInExchangeWallet)
         {
             //buy
-            userWallet.PLN -= unitPrice;
-            userWallet.GetType().GetProperty(currencyName).SetValue(userWallet, userCurrBalance + unitSize);
+            userWallet.PLN -= currency.PurchasePrice;
+            userWallet.GetType().GetProperty(currency.Code).SetValue(userWallet, userCurrBalance + currency.Unit);
 
-            exchangeWallet.PLN += unitPrice;
-            exchangeWallet.GetType().GetProperty(currencyName).SetValue(exchangeWallet, exchangeCurrBalance - unitSize);
+            exchangeWallet.PLN += currency.PurchasePrice;
+            exchangeWallet.GetType().GetProperty(currency.Code).SetValue(exchangeWallet, exchangeCurrBalance - currency.Unit);
 
             await _userWallet.UpdateUserWalletBalance(userWallet);
             await _exchangeWallet.UpdateExchangeWalletBalance(exchangeWallet);
@@ -244,28 +286,27 @@ else
             // No funds
             await JS.InvokeVoidAsync("alert", "You or the exchange do not have the funds to make this transaction!");
         }
+        StateHasChanged();
     }
 
-    private async void Sell(string currencyName)
+    private async void Sell(CurrencyDetailsModel currency)
     {
         exchangeWallet = await _exchangeWallet.GetExchangeWallet();
         userWallet = await _userWallet.GetUserWallet(loggedInUserId);
-        var unitSize = Convert.ToInt32(exchangeUnits.GetType().GetProperty(currencyName).GetValue(exchangeUnits, null));
-        var unitPrice = unitSize * Convert.ToDecimal(exchangeRates.Last().GetType().GetProperty(currencyName).GetValue(exchangeRates.Last(), null));
-        var exchangeCurrBalance = Convert.ToInt32(exchangeWallet.GetType().GetProperty(currencyName).GetValue(exchangeWallet, null));
-        var userCurrBalance = Convert.ToInt32(userWallet.GetType().GetProperty(currencyName).GetValue(userWallet, null));
-        bool enoughInUserWallet = userCurrBalance >= unitSize;
-        bool enoughInExchangeWallet = exchangeWallet.PLN >= unitPrice;
+        var exchangeCurrBalance = Convert.ToInt32(exchangeWallet.GetType().GetProperty(currency.Code).GetValue(exchangeWallet, null));
+        var userCurrBalance = Convert.ToInt32(userWallet.GetType().GetProperty(currency.Code).GetValue(userWallet, null));
+        bool enoughInUserWallet = userCurrBalance >= currency.Unit;
+        bool enoughInExchangeWallet = exchangeWallet.PLN >= currency.SellPrice;
 
         // Check if user and exchange have the required balance
         if (enoughInUserWallet && enoughInExchangeWallet)
         {
             //buy
-            userWallet.PLN += unitPrice;
-            userWallet.GetType().GetProperty(currencyName).SetValue(userWallet, userCurrBalance - unitSize);
+            userWallet.PLN += currency.SellPrice;
+            userWallet.GetType().GetProperty(currency.Code).SetValue(userWallet, userCurrBalance - currency.Unit);
 
-            exchangeWallet.PLN -= unitPrice;
-            exchangeWallet.GetType().GetProperty(currencyName).SetValue(exchangeWallet, exchangeCurrBalance + unitSize);
+            exchangeWallet.PLN -= currency.SellPrice;
+            exchangeWallet.GetType().GetProperty(currency.Code).SetValue(exchangeWallet, exchangeCurrBalance + currency.Unit);
 
             await _userWallet.UpdateUserWalletBalance(userWallet);
             await _exchangeWallet.UpdateExchangeWalletBalance(exchangeWallet);
@@ -275,11 +316,28 @@ else
             // No funds
             await JS.InvokeVoidAsync("alert", "You or the exchange do not have the funds to make this transaction!");
         }
+        StateHasChanged();
     }
-
 
     private async void LogInPrompt()
     {
         await JS.InvokeVoidAsync("alert", "You are not logged in!");
+    }
+
+    private HubConnection hubConnection;
+    private string input;
+
+    public async Task Send() =>
+        await hubConnection.SendAsync("SendMessage", input);
+
+    public bool IsConnected =>
+        hubConnection.State == HubConnectionState.Connected;
+
+    public async ValueTask DisposeAsync()
+    {
+        if (hubConnection is not null)
+        {
+            await hubConnection.DisposeAsync();
+        }
     }
 }

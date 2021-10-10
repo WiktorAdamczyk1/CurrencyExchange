@@ -24,8 +24,7 @@ namespace DataAccessLibrary
             }
 
             string sql = "select * from dbo.UserWallets where UserId = @UserId";
-            var data = await _db.LoadData<UserWalletsModel, dynamic>(sql, new { userId = currentUserId });
-            return data[0];
+            return (await _db.LoadData<UserWalletsModel, dynamic>(sql, new { userId = currentUserId })).FirstOrDefault();
         }
 
         public Task UpdateUserWalletBalance(UserWalletsModel userWallet)

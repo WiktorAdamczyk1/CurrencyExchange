@@ -16,6 +16,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.ResponseCompression;
+using CurrencyExchange.Hubs;
 
 namespace CurrencyExchange
 {
@@ -43,17 +45,26 @@ namespace CurrencyExchange
             services.AddDatabaseDeveloperPageExceptionFilter();
             services.AddHttpContextAccessor();
             services.AddTransient<ISqlDataAccess, SqlDataAccess>();
-            services.AddTransient<IExchangeRatesData, ExchangeRatesData>();
-            services.AddTransient<IExchangeUnitsData, ExchangeUnitsData>();
+            services.AddSingleton<ICurrencyDetailsData, CurrencyDetailsData>();
             services.AddTransient<IExchangeWalletData, ExchangeWalletData>();
             services.AddTransient<IUserWalletsData, UserWalletsData>();
             services.AddTransient<IAspNetUsersData, AspNetUsersData>();
             services.AddTransient<IUserCurrencySettingsData, UserCurrencySettingsData>();
+            services.AddSignalR();
+            services.AddHostedService<ExchangeRatesHostedService>();
+            services.AddHttpClient<ExchangeRatesHttp>();
+            services.AddResponseCompression(opts =>
+            {
+                opts.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(
+                    new[] { "application/octet-stream" });
+            });
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
+            app.UseResponseCompression();
+
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
@@ -78,6 +89,7 @@ namespace CurrencyExchange
             {
                 endpoints.MapControllers();
                 endpoints.MapBlazorHub();
+                endpoints.MapHub<NotificationHub>("/notification");
                 endpoints.MapFallbackToPage("/_Host");
             });
         }
