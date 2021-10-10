@@ -8,12 +8,12 @@ namespace DataAccessLibrary.Models
 {
     public class ExchangeRatesModel
     {
-        public int USD { get; set; }
-        public int EUR { get; set; }
-        public int CHF { get; set; }
-        public int RUB { get; set; }
-        public int CZK { get; set; }
-        public int GBP { get; set; }
+        public decimal USD { get; set; }
+        public decimal EUR { get; set; }
+        public decimal CHF { get; set; }
+        public decimal RUB { get; set; }
+        public decimal CZK { get; set; }
+        public decimal GBP { get; set; }
         public DateTime Timestamp { get; set; }
     }
 }

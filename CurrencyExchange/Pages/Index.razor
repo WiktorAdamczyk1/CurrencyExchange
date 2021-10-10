@@ -9,199 +9,277 @@
 @inject IExchangeUnitsData _exchangeUnitsData
 @inject IExchangeWalletData _exchangeWallet
 @inject IUserWalletsData _userWallet
-
-<div>
-    <div class="inline-table">
-        <table class="table">
-            <thead>
-                <tr>
-                    <th colspan="4" class="table-header">Currencies</th>
-                </tr>
-            </thead>
-            <thead>
-                <tr>
-                    <th>
-                        Currency
-                    </th>
-                    <th>
-                        Unit
-                    </th>
-                    <th>
-                        Value
-                    </th>
-                    <th>
-                        Actions
-                    </th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td>
-                        GBP
-                    </td>
-                    <td>
-                        1
-                    </td>
-                    <td>
-                        5.83
-                    </td>
-                    <td>
-                        <button class="btn btn-primary">Buy</button>
-                    </td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
-    <div class="inline-table">
-        <table class="table">
-            <thead>
-                <tr>
-                    <th colspan="5" class="table-header">Currencies</th>
-                </tr>
-            </thead>
-            <thead>
-                <tr>
-                    <th>
-                        Currency
-                    </th>
-                    <th>
-                        Unit price
-                    </th>
-                    <th>
-                        Amount
-                    </th>
-                    <th>
-                        Value
-                    </th>
-                    <th>
-                        Actions
-                    </th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td>
-                        GBP
-                    </td>
-                    <td>
-                        5.83
-                    </td>
-                    <td>
-                        100
-                    </td>
-                    <td>
-                        583
-                    </td>
-                    <td>
-                        <button class="btn btn-primary">Sell</button>
-                    </td>
-                </tr>
-                <tr>
-                    <td colspan="5"></td>
-                </tr>
-                <tr>
-                    <td colspan="5">Available PLN:</td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
-</div>
-
-@if (exchangeWallet == null)
+@inject IUserCurrencySettingsData _userCurrencySettings
+@inject IJSRuntime JS
+@if (isLoading)
 {
     <p><em>Loading...</em></p>
 }
 else
 {
-    foreach (var exchangeRate in exchangeRates)
-    {
-        <p><em>@exchangeRate.USD</em></p>
-        <br>
-        <p><em>@exchangeRate.EUR</em></p>
-        <br>
-        <p><em>@exchangeRate.CHF</em></p>
-        <br>
-        <p><em>@exchangeRate.RUB</em></p>
-        <br>
-        <p><em>@exchangeRate.CZK</em></p>
-        <br>
-        <p><em>@exchangeRate.GBP</em></p>
-        <br>
-        <p><em>@exchangeRate.Timestamp</em></p>
-        <br>
-    }
-    <p><em>ExchangeUnits=========VV====</em></p>
-    <br>
-    <p><em>@exchangeUnits.USD</em></p>
-    <br>
-    <p><em>@exchangeUnits.EUR</em></p>
-    <br>
-    <p><em>@exchangeUnits.CHF</em></p>
-    <br>
-    <p><em>@exchangeUnits.RUB</em></p>
-    <br>
-    <p><em>@exchangeUnits.CZK</em></p>
-    <br>
-    <p><em>@exchangeUnits.GBP</em></p>
-    <br>
 
-    <p><em>ExchangeWallet=========VV====</em></p>
-    <br>
-    <p><em>@exchangeWallet.PLN</em></p>
-    <br>
-    <p><em>@exchangeWallet.USD</em></p>
-    <br>
-    <p><em>@exchangeWallet.EUR</em></p>
-    <br>
-    <p><em>@exchangeWallet.CHF</em></p>
-    <br>
-    <p><em>@exchangeWallet.RUB</em></p>
-    <br>
-    <p><em>@exchangeWallet.CZK</em></p>
-    <br>
-    <p><em>@exchangeWallet.GBP</em></p>
-    <br>
-    if (userWallet != null)
-    {
-        <p><em>UserWallet=========VV====</em></p>
-        <br>
-        <p><em>@userWallet.PLN</em></p>
-        <br>
-        <p><em>@userWallet.USD</em></p>
-        <br>
-        <p><em>@userWallet.EUR</em></p>
-        <br>
-        <p><em>@userWallet.CHF</em></p>
-        <br>
-        <p><em>@userWallet.RUB</em></p>
-        <br>
-        <p><em>@userWallet.CZK</em></p>
-        <br>
-        <p><em>@userWallet.GBP</em></p>
-        <br>
-    }
+    <div>
+        <div class="inline-table center">
+            <table class="table center">
+                <thead>
+                    <tr>
+                        <th colspan="4" class="table-header">Currencies</th>
+                    </tr>
+                </thead>
+                <thead>
+                    <tr class="grey-row">
+                        <th>
+                            Currency
+                        </th>
+                        <th>
+                            Unit
+                        </th>
+                        <th>
+                            Value
+                        </th>
+                        <th>
+                            Actions
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (authenticated)
+                    {
+                        foreach (var prop in userCurrencySettings.GetType().GetProperties())
+                        {
+                            if (prop.PropertyType != typeof(string) && Convert.ToBoolean(prop.GetValue(userCurrencySettings)))
+                            {
+                                var name = prop.Name;
+                                <tr>
+                                    <td>
+                                        @prop.Name
+                                    </td>
+                                    <td>
+                                        @exchangeUnits.GetType().GetProperty(prop.Name).GetValue(exchangeUnits, null)
+                                    </td>
+                                    <td>
+                                        @String.Format("{0:0.00}", exchangeRates.Last().GetType().GetProperty(prop.Name).GetValue(exchangeRates.Last(), null))
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-primary" @onclick="()=>Buy(name)">Buy</button>
+                                    </td>
+                                </tr>
+                            }
+                        }
 
+                    }
+                    else
+                    {
+                        foreach (var prop in exchangeWallet.GetType().GetProperties())
+                        {
+                            if (prop.PropertyType != typeof(string) && prop.Name != "PLN")
+                            {
+                                <tr>
+                                    <td>
+                                        @prop.Name
+                                    </td>
+                                    <td>
+                                        @exchangeUnits.GetType().GetProperty(prop.Name).GetValue(exchangeUnits, null)
+                                    </td>
+                                    <td>
+                                        @String.Format("{0:0.00}", exchangeRates.Last().GetType().GetProperty(prop.Name).GetValue(exchangeRates.Last(), null))
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-primary" @onclick="LogInPrompt">Buy</button>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    }
+                    <tr>
+                        <td colspan="5"></td>
+                    </tr>
+                    <tr>
+                        <td colspan="5">
+                            Last Value Update: @exchangeRates.Last().GetType().GetProperty("Timestamp").GetValue(exchangeRates.Last(), null)<br>
+                            Available PLN: @exchangeWallet.PLN
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="inline-table center">
+            <table class="table center">
+                <thead>
+                    @if (authenticated)
+                    {
+                        <tr>
+                            <th colspan="5" class="table-header">My Wallet</th>
+                        </tr>
+                    }
+                    else
+                    {
+                        <tr>
+                            <th colspan="5" class="table-header">Log in to see your wallet</th>
+                        </tr>
+                    }
+
+                </thead>
+                <thead>
+                    <tr class="grey-row">
+                        <th>
+                            Currency
+                        </th>
+                        <th>
+                            Unit price
+                        </th>
+                        <th>
+                            Amount
+                        </th>
+                        <th>
+                            Value
+                        </th>
+                        <th>
+                            Actions
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (authenticated)
+                    {
+                        foreach (var prop in userCurrencySettings.GetType().GetProperties())
+                        {
+                            if (prop.PropertyType != typeof(string) && Convert.ToBoolean(prop.GetValue(userCurrencySettings)))
+                            {
+                                var name = prop.Name;
+                                <tr>
+                                    <td>
+                                        @prop.Name
+                                    </td>
+                                    <td>
+                                        @String.Format("{0:0.00}", (Convert.ToDecimal(exchangeUnits.GetType().GetProperty(prop.Name).GetValue(exchangeUnits, null)) * Convert.ToDecimal(exchangeRates.Last().GetType().GetProperty(prop.Name).GetValue(exchangeRates.Last(), null))))
+                                    </td>
+                                    <td>
+                                        @userWallet.GetType().GetProperty(prop.Name).GetValue(userWallet, null)
+                                    </td>
+                                    <td>
+                                        @String.Format("{0:0.00}", exchangeRates.Last().GetType().GetProperty(prop.Name).GetValue(exchangeRates.Last(), null))
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-primary" @onclick="()=>Buy(name)">Sell</button>
+                                    </td>
+                                </tr>
+                            }
+                        }
+
+                    }
+                    <tr>
+                        <td colspan="5"></td>
+                    </tr>
+                    @if (authenticated)
+                    {
+                        <tr>
+                            <td colspan="5">Available PLN: @userWallet.PLN</td>
+                        </tr>
+
+                    }
+
+                </tbody>
+            </table>
+        </div>
+    </div>
 
 }
 
+
 @code {
     private List<ExchangeRatesModel> exchangeRates;
-    private ExchangeUnitsModel exchangeUnits;
+    private ExchangeUnitsModel exchangeUnits = new ExchangeUnitsModel();
     private ExchangeWalletModel exchangeWallet;
     private UserWalletsModel userWallet;
+    private UserCurrencySettingsModel userCurrencySettings = new UserCurrencySettingsModel();
+    private bool authenticated = false;
+
+    string loggedInUserId = null;
+    private bool isLoading = true;
 
     protected override async Task OnInitializedAsync()
     {
+        authenticated = _httpContextAccessor.HttpContext.User.Identity.IsAuthenticated;
         exchangeRates = await _exchangeRatesData.GetExchangeRates();
         exchangeUnits = await _exchangeUnitsData.GetExchangeUnits();
         exchangeWallet = await _exchangeWallet.GetExchangeWallet();
-        if (_httpContextAccessor.HttpContext.User.Identity.IsAuthenticated)
+        if (authenticated)
         {
             var principal = _httpContextAccessor.HttpContext.User;
-            var loggedInUserId = principal.FindFirstValue(ClaimTypes.NameIdentifier);
+            loggedInUserId = principal.FindFirstValue(ClaimTypes.NameIdentifier);
 
             userWallet = await _userWallet.GetUserWallet(loggedInUserId);
+            userCurrencySettings = await _userCurrencySettings.GetUserCurrencySettings(loggedInUserId);
         }
+        isLoading = false;
+    }
 
+    private async void Buy(string currencyName)
+    {
+        exchangeWallet = await _exchangeWallet.GetExchangeWallet();
+        userWallet = await _userWallet.GetUserWallet(loggedInUserId);
+        var unitSize = Convert.ToInt32(exchangeUnits.GetType().GetProperty(currencyName).GetValue(exchangeUnits, null));
+        var unitPrice = unitSize*Convert.ToDecimal(exchangeRates.Last().GetType().GetProperty(currencyName).GetValue(exchangeRates.Last(), null));
+        var exchangeCurrBalance = Convert.ToInt32(exchangeWallet.GetType().GetProperty(currencyName).GetValue(exchangeWallet, null));
+        var userCurrBalance = Convert.ToInt32(userWallet.GetType().GetProperty(currencyName).GetValue(userWallet, null));
+        bool enoughInExchangeWallet = exchangeCurrBalance >= unitSize;
+        bool enoughInUserWallet = userWallet.PLN >= unitPrice;
+
+        // Check if user and exchange have the required balance
+        if (enoughInUserWallet && enoughInExchangeWallet)
+        {
+            //buy
+            userWallet.PLN -= unitPrice;
+            userWallet.GetType().GetProperty(currencyName).SetValue(userWallet, userCurrBalance + unitSize);
+
+            exchangeWallet.PLN += unitPrice;
+            exchangeWallet.GetType().GetProperty(currencyName).SetValue(exchangeWallet, exchangeCurrBalance - unitSize);
+
+            await _userWallet.UpdateUserWalletBalance(userWallet);
+            await _exchangeWallet.UpdateExchangeWalletBalance(exchangeWallet);
+        }
+        else
+        {
+            // No funds
+            await JS.InvokeVoidAsync("alert", "You or the exchange do not have the funds to make this transaction!");
+        }
+    }
+
+    private async void Sell(string currencyName)
+    {
+        exchangeWallet = await _exchangeWallet.GetExchangeWallet();
+        userWallet = await _userWallet.GetUserWallet(loggedInUserId);
+        var unitSize = Convert.ToInt32(exchangeUnits.GetType().GetProperty(currencyName).GetValue(exchangeUnits, null));
+        var unitPrice = unitSize * Convert.ToDecimal(exchangeRates.Last().GetType().GetProperty(currencyName).GetValue(exchangeRates.Last(), null));
+        var exchangeCurrBalance = Convert.ToInt32(exchangeWallet.GetType().GetProperty(currencyName).GetValue(exchangeWallet, null));
+        var userCurrBalance = Convert.ToInt32(userWallet.GetType().GetProperty(currencyName).GetValue(userWallet, null));
+        bool enoughInUserWallet = userCurrBalance >= unitSize;
+        bool enoughInExchangeWallet = exchangeWallet.PLN >= unitPrice;
+
+        // Check if user and exchange have the required balance
+        if (enoughInUserWallet && enoughInExchangeWallet)
+        {
+            //buy
+            userWallet.PLN += unitPrice;
+            userWallet.GetType().GetProperty(currencyName).SetValue(userWallet, userCurrBalance - unitSize);
+
+            exchangeWallet.PLN -= unitPrice;
+            exchangeWallet.GetType().GetProperty(currencyName).SetValue(exchangeWallet, exchangeCurrBalance + unitSize);
+
+            await _userWallet.UpdateUserWalletBalance(userWallet);
+            await _exchangeWallet.UpdateExchangeWalletBalance(exchangeWallet);
+        }
+        else
+        {
+            // No funds
+            await JS.InvokeVoidAsync("alert", "You or the exchange do not have the funds to make this transaction!");
+        }
+    }
+
+
+    private async void LogInPrompt()
+    {
+        await JS.InvokeVoidAsync("alert", "You are not logged in!");
     }
 }

@@ -30,7 +30,7 @@ namespace DataAccessLibrary
 
         public Task UpdateUserWalletBalance(UserWalletsModel userWallet)
         {
-            string sql = @"update dbo.UserWallets set PLN = @PLN, USD = @USD, EUR = @EUR, CHF = @CHF, RUB = @RUB, CZK = @CZK, GBP = @GBP;";
+            string sql = @"update dbo.UserWallets set PLN = @PLN, USD = @USD, EUR = @EUR, CHF = @CHF, RUB = @RUB, CZK = @CZK, GBP = @GBP where UserId = @UserId;";
 
             return _db.SaveData(sql, userWallet);
         }

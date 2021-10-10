@@ -8,7 +8,7 @@ namespace DataAccessLibrary.Models
 {
     public class ExchangeWalletModel
     {
-        public int PLN { get; set; }
+        public decimal PLN { get; set; }
         public int USD { get; set; }
         public int EUR { get; set; }
         public int CHF { get; set; }
