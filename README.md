@@ -1,6 +1,6 @@
 # CurrencyExchange
 
-This is an online currency exchange website made in Blazor server application as an interview task for [Future Processing](https://www.future-processing.pl/).
+This is an online currency exchange website made in Blazor server application.
 Main goal of this task was to create a product that allows multiple users to log in and exchange various currencies with the currency exchange.
 
 ## Setup
